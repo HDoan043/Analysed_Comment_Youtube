@@ -280,7 +280,7 @@ if __name__  =="__main__":
     print("="*50)
     print("\t\tINIT CHAT")
     api_key_index = 0
-    api_folder = args.api_dir
+    api_folder = args.api_folder
     api_key_dir = os.path.join(api_folder, f"api_key_{INDEX_DATA}.json")
     client = init_chat(api_key_index, api_key_dir)
     with open(api_key_dir, "r") as f:
@@ -377,5 +377,6 @@ if __name__  =="__main__":
             time.sleep(60)
         print(f"\rProcessing {total_comment}/{len(list(data))} comments ....  - {wrong_format} comments are wrong format      ", end="")            
         # break
+
 
     print("[DONE] Finish processing comments.")
