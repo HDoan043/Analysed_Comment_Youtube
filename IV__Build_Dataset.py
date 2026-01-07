@@ -105,13 +105,13 @@ def ask(system_prompt, batch_comments, client):
     model = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
     for attempt in range(len(model)):
         try:    
-            # print("\nAsking...")
+            print("\nAsking...")
             response = client.models.generate_content(
                 model = model[attempt],
                 contents = user_comments,
                 config = config
             )
-            # print("Finish Asking")
+            print("Finish Asking")
             if response.text:
                 try:
                     json_response = json.loads(response.text)
@@ -127,6 +127,7 @@ def ask(system_prompt, batch_comments, client):
             
         except Exception as e:
             continue
+            print("[ERORR] Somethings wrong when call api :((")
             # print()
             # if "RESOURCE_EXHAUSTED" in str(e):
             #     print(f"❌ Lỗi: mô hình {model[attempt]} hết hạn mức. ", end="")
@@ -382,5 +383,6 @@ if __name__  =="__main__":
 
 
     print("[DONE] Finish processing comments.")
+
 
 
