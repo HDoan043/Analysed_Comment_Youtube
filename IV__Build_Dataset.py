@@ -20,6 +20,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--index_data", type=int, default=0)
 parser.add_argument("--api_folder", type=str, default="./config")
 parser.add_argument("--data_folder", type=str, default="./tmp")
+parser.add_argument("--history_dir", type=str, default="/kaggle/input/process_comment_yt_INDEX/final_data_INDEX.json")
 parser.add_argument("--result_folder", type=str, default="./tmp")
 args = parser.parse_args()
     
@@ -287,22 +288,23 @@ if __name__  =="__main__":
         api_dict = json.load(f)
     project_name_list = list(api_dict.keys())
     print("_ Start with api key of project : ", project_name_list[api_key_index])
-        
-    print()
     
+    # Load history
+    history_dir = args.history_dir
+    history_dir = history_dir.replace("INDEX", str(INDEX_DATA))
+    try:
+        with open(history_dir, "r", encoding="utf-8") as f:
+            final_result = json.load(f)
+    except:
+        final_result = {}
+        
     # Result_dir
     result_folder = args.result_folder
     os.makedirs(result_folder, exist_ok=True)
     result_dir = os.path.join(result_folder, f"final_data_{INDEX_DATA}.json")
-    
-    # Load history
-    try:
-        with open(result_dir, "r", encoding="utf-8") as f:
-            final_result = json.load(f)
-    except:
-        final_result = {}
-    
+
     # Filter which comments have not been processed yet    
+    print() 
     print("="*50)
     print("\t\tSHUFFLE DATA")
     comments_id = list(data.keys())
@@ -380,4 +382,5 @@ if __name__  =="__main__":
 
 
     print("[DONE] Finish processing comments.")
+
 
