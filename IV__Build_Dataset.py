@@ -344,7 +344,7 @@ if __name__  =="__main__":
                 print(f"\n[END OF QUOTA] API Key of project {project_name_list[api_key_index]} is end of quota, changing to the other API Key...")
                 api_key_index += 1
                 # thử api_key khác
-                client = init_chat(api_key_index)
+                client = init_chat(api_key_index, api_key_dir)
                 if not client:
                     check_end_quota = True
                     break
@@ -380,3 +380,4 @@ if __name__  =="__main__":
 
 
     print("[DONE] Finish processing comments.")
+
