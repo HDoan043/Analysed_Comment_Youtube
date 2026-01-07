@@ -126,8 +126,9 @@ def ask(system_prompt, batch_comments, client):
                 return None
             
         except Exception as e:
+            print("[ERORR] Somethings wrong when call api :(( : {}".format(e))
             continue
-            print("[ERORR] Somethings wrong when call api :((")
+            
             # print()
             # if "RESOURCE_EXHAUSTED" in str(e):
             #     print(f"❌ Lỗi: mô hình {model[attempt]} hết hạn mức. ", end="")
@@ -383,6 +384,7 @@ if __name__  =="__main__":
 
 
     print("[DONE] Finish processing comments.")
+
 
 
 
