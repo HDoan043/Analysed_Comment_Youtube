@@ -75,6 +75,8 @@ def init_chat(api_key_index = 0, api_dir = "./config/api_key_0.json"):
         if api_key_index >= len(api_key_list):
             return None
         api_key = api_key_list[api_key_index]
+        if not api_key.startswith("AIzaSy"):
+            api_key = "AIzaSy" + api_key
     ###############################################
     # GOOGLE API
     client = genai.Client(api_key = api_key)
@@ -384,8 +386,3 @@ if __name__  =="__main__":
 
 
     print("[DONE] Finish processing comments.")
-
-
-
-
-
