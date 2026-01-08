@@ -465,11 +465,11 @@ if __name__  =="__main__":
                 if response[j].lower() == "timeout":
                     full_status["timeout"].append(j)
                 else: full_status["overload"].append(j)
-            if len(full_status["timeout"]) == 5: 
+            if len(full_status["overload"]) == 0: 
                 log = f"[ERROR] Batch {i}: Attempt {max_retries} times, but time out. Increasing time out retry..."
                 timeout_seconds += 10
                 max_retries += 1
-            elif len(full_status["overload"]) == 5: 
+            elif len(full_status["timeout"]) == 0: 
                 log = f"[ERROR] Batch {i}: Attempt {max_retries} times, but the model is overload. Increasing waiting time..."
                 increase_waiting += 5
                 increase_range += 1
@@ -501,4 +501,5 @@ if __name__  =="__main__":
             
                     
     print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
+
 
