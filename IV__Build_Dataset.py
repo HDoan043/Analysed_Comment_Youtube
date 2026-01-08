@@ -104,39 +104,52 @@ def ask(system_prompt, batch_comments, client):
     )
     
     user_comments = json.dumps(batch_comments, ensure_ascii=False, indent=2)
-    model = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
-    for attempt in range(len(model)):
-        try:    
-            # print("\nAsking...")
-            response = client.models.generate_content(
-                model = model[attempt],
-                contents = user_comments,
-                config = config
-            )
-            # print("Finish Asking")
-            if response.text:
-                try:
-                    json_response = json.loads(response.text)
-                    return json_response
-                except:
+    models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
+    model_index = 0
+
+    check_end_quota = 0
+    # Try each model
+    for model in models:
+        # with a model, try to call max_retries time in case of not exausted resources
+        for attempt in range(max_retries):
+            try:    
+                # print("\nAsking...")
+                response = client.models.generate_content(
+                    model = model,
+                    contents = user_comments,
+                    config = config
+                )
+                # print("Finish Asking")
+                if response.text:
+                    try:
+                        json_response = json.loads(response.text)
+                        return json_response
+                    # in case of the answer not in json format -> retry again
+                    except:
+                        continue
+                else:
                     print()
-                    print("[ERROR] The returned response is not in JSON format")
+                    print("[FAIL] Call API fail, response: {}".format(response))
                     return None
-            else:
-                print()
-                print("[FAIL] Call API fail, response: {}".format(response))
-                return None
-            
-        except Exception as e:
-            # print("[ERROR] Somethings wrong when call api :(( : {}".format(e))
-            continue
-            
-            # print()
-            # if "RESOURCE_EXHAUSTED" in str(e):
-            #     print(f"❌ Lỗi: mô hình {model[attempt]} hết hạn mức. ", end="")
-            #     if attempt < len(model) - 1: print(f"Đang chuyển sang mô hình {model[attempt+1]}")  
-            #     else: print()
-    return -1
+                
+            except Exception as e:
+                # if end of quota -> stop retrying, change to new model
+                if "RESOURCE_EXHAUSTED" in str(e):
+                    check_end_quota += 1
+                    break
+
+                # if not end of quota, but cannot get answer successfully -> retry
+                else:
+                    print("\t[ERROR] Somethings wrong when call api : {}".format(e)) 
+                    print("\t_ Attempt one more time ...")
+                    continue
+                #     print(f"❌ Lỗi: mô hình {model[attempt]} hết hạn mức. ", end="")
+                #     if attempt < len(model) - 1: print(f"Đang chuyển sang mô hình {model[attempt+1]}")  
+                #     else: print()
+    if check_end_quota == len(models): return -1
+    else: 
+        print("\t_ Max attempt times, skip this batch")
+        return 0
             
     ########################################################
     
@@ -170,8 +183,8 @@ def ask(system_prompt, batch_comments, client):
     #         return None
     # print()
     # print("❌ Đã thử quá nhiều lần, bỏ qua batch này.")
+    # return None
     ##################################################
-    return None
     
 def check_format(response):
     '''
@@ -321,8 +334,7 @@ if __name__  =="__main__":
     print("="*50)
     print("\t\tPROCESSING")
     total_comment = len(list(final_result))
-    for i in range(num_batch+1):
-        
+    for i in range(num_batch+1):    
         # Get batch
         start_batch_index = i*batch_size
         if i < num_batch:
@@ -347,7 +359,7 @@ if __name__  =="__main__":
         while 1:
             response = ask(prompt, batch, client)
             if response == -1: # api_key hết hạn mức
-                print(f"\n[END OF QUOTA] API Key of project {project_name_list[api_key_index]} is end of quota, changing to the other API Key...")
+                print(f"[END OF QUOTA] API Key of project {project_name_list[api_key_index]} is end of quota, changing to the other API Key...")
                 api_key_index += 1
                 # thử api_key khác
                 client = init_chat(api_key_index, api_key_dir)
@@ -357,7 +369,7 @@ if __name__  =="__main__":
             else:
                 break
         if check_end_quota:
-            print("\n[END] All of the api_keys are tried, but end of quota")
+            print("[END] All of the api_keys are tried, but end of quota")
             break
         ##########################################
         
@@ -381,10 +393,11 @@ if __name__  =="__main__":
             print()
             print("[ERROR] Error in batch {}".format(i))
             time.sleep(60)
-        print(f"\rProcessing {total_comment}/{len(list(data))} comments ....  - {wrong_format} comments are wrong format      ", end="")            
+        print(f"Processing {total_comment}/{len(list(data))} comments ....  - {wrong_format} comments are wrong format      ")            
         # break
 
 
     print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
+
 
 
