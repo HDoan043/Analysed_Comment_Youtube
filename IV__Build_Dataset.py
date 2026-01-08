@@ -468,18 +468,18 @@ if __name__  =="__main__":
             if len(full_status["overload"]) == 0: 
                 log = f"[ERROR] Batch {i}: Attempt {max_retries} times, but time out. Increasing time out retry..."
                 timeout_seconds += 10
-                max_retries += 1
+                # max_retries += 1
             elif len(full_status["timeout"]) == 0: 
                 log = f"[ERROR] Batch {i}: Attempt {max_retries} times, but the model is overload. Increasing waiting time..."
                 increase_waiting += 5
                 increase_range += 1
-                max_retries += 1
+                # max_retries += 1
             else:
                 log = f"[ERROR] Batch {i}: Attemp {max_retries} times, but the time {full_status['timeout']} time out, {full_status['overload']} overload. Increasing timeout and waiting time..."
                 timeout_seconds += 5
                 increase_waiting += 3
                 increase_range += 1
-                max_retries += 1
+                # max_retries += 1
             print(log)
             
         else:
@@ -494,12 +494,13 @@ if __name__  =="__main__":
             safe_increase_range = increase_range
             
         if success_sequence >= 5:
-            max_retries = min(safe_max_retries, max_retries)
+            # max_retries = min(safe_max_retries, max_retries)
             timeout_seconds = min(safe_timeout_seconds, timeout_seconds)
             increase_waiting = min(safe_increase_waiting, increase_waiting)
             increase_range = min(safe_increase_range, increase_range)
             
                     
     print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
+
 
 
