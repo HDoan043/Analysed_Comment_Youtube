@@ -89,13 +89,10 @@ def init_chat(api_key_index = 0, api_dir = "./config/api_key_0.json"):
     return client
     
 # Ask LLM
-def ask(system_prompt, batch_comments, client):
+def ask(
+    system_prompt, batch_comments, client, 
+    timeout_seconds = 90, max_retries = 5, increase_waiting = 20, increase_range = 20):
 # def ask(messages, client):
-    max_retries = 5
-    timeout_seconds = 90
-    increase_waiting = 10
-    increase_range = 10
-    
     #######################################################
     # GOOGLE API
     # Config
@@ -110,6 +107,7 @@ def ask(system_prompt, batch_comments, client):
     model_index = 0
 
     check_end_quota = 0
+    error_log = []
     # Try each model
     for model in models:
         # with a model, try to call max_retries time in case of not exausted resources
@@ -143,11 +141,10 @@ def ask(system_prompt, batch_comments, client):
 
                 # if not end of quota, but cannot get answer successfully because server is overload or timeout
                 # --> wait and retry
-                if "503" in str(e)\
-                    or "408" in str(e)\
-                    or "timeout" in str(e).lower()\
+                elif "503" in str(e)\
                     or "UNAVAILABLE" in str(e)\
-                    or "500" in error_msg:
+                    or "500" in str(e):
+                    error_log.append("Overload")
                     # ------Wait--------
                     # _ Strategy of waiting to avoid collision next time:
                     #  + The more time of collision -> The longer wating time
@@ -168,13 +165,24 @@ def ask(system_prompt, batch_comments, client):
                     #    --> Set up the range wider linear after one collision time : range = (1, const * num_collision) 
                     # --------> FINAL FORMULA FOR WATING TIME: waiting_time = const1*num_collision + random(1, const*num_collision)
                     base_waiting = increase_waiting * attempt
-                    new_range = increase_range * attempt + 10 # range: at lease 10s
+                    new_range = increase_range * attempt + 20 # range: at lease 20s
                     random_waiting = random.randint(1, new_range)
                     wait_time = base_waiting + random_waiting
                     time.sleep(wait_time)
                     # ------Retry-------
                     continue
-                    
+
+                elif "408" in str(e)\
+                    or "timeout" in str(e).lower():
+                    error_log.append("Timeout")
+                    base_waiting = increase_waiting * attempt
+                    new_range = increase_range * attempt + 20 # range: at lease 20s
+                    random_waiting = random.randint(1, new_range)
+                    wait_time = base_waiting + random_waiting
+                    time.sleep(wait_time)
+                    # ------Retry-------
+                    continue
+                        
                 else:
                     print("\t[ERROR] Somethings wrong when call api : {}".format(e)) 
                     print("\t_ Attempt one more time ...")
@@ -183,8 +191,9 @@ def ask(system_prompt, batch_comments, client):
                 #     if attempt < len(model) - 1: print(f"Đang chuyển sang mô hình {model[attempt+1]}")  
                 #     else: print()
     if check_end_quota == len(models): return -1
+    if len(error_log) == max_retries * len(models): 
+        return error_log
     else: 
-        print("\t_ Max attempt times, skip this batch")
         return 0
             
     ########################################################
@@ -365,10 +374,21 @@ if __name__  =="__main__":
     random.shuffle(comments_id)
     batch_size = 50
     num_batch = len(comments_id)//batch_size
-    
+
+    # Config parameter
+    timeout_seconds = 90
+    max_retries = 5
+    increase_waiting = 20
+    increase_range = 20
+    success_sequence = 0
+    safe_timeout_seconds = 1000
+    safe_max_retries = 1000
+    safe_increase_waiting = 1000
+    safe_increase_range = 1000
     # Loop for each batch comments and process
     print("="*50)
     print("\t\tPROCESSING")
+    
     total_comment = len(list(final_result))
     for i in range(num_batch+1):    
         # Get batch
@@ -393,7 +413,11 @@ if __name__  =="__main__":
         # GOOGLE API
         check_end_quota = False
         while 1:
-            response = ask(prompt, batch, client)
+            response = ask(prompt, batch, client, 
+                           timeout_seconds = timeout_seconds, 
+                           max_retries = max_retries, 
+                           increase_waiting = increase_waiting, 
+                           increase_range = increase_range)
             if response == -1: # api_key hết hạn mức
                 print(f"[END OF QUOTA] API Key of project {project_name_list[api_key_index]} is end of quota, changing to the other API Key...")
                 api_key_index += 1
@@ -413,29 +437,66 @@ if __name__  =="__main__":
         # GROQ
         # response = ask(messages, client)
         ##########################################
-        
-        try:
-            # Check quality
-            response, wrong_format = check_format(response)
+
+        # Process response
+        if isinstance(response, dict):
+            try:
+                # Check quality
+                response, wrong_format = check_format(response)            
+                # Data after processed
+                final_result = final_data(response, final_result, data)
+                with open(result_dir, "w", encoding="utf-8") as f:
+                    json.dump(final_result, f)
+                time.sleep(20)
+                print(f"Process {total_comment}/{len(list(data))} comments ....  - {wrong_format} comments are wrong format      ")     
+                # Update safe parameter
+                success_sequence += 1
+                
+            except:
+                print()
+                print("[ERROR] Batch {}: the returned response is not in JSON format".format(i))
+                print("Skip this batch")
+    
+        elif isinstance(response, list):
+            success_sequence = max(success_sequence -1, 0)
+            full_status = {"timeout":[], "overload":[]}
+            for j in range(len(response)):
+                if response[j].lower() == "timeout":
+                    full_status["timeout"].append(j)
+                else: full_status["overload"].append(j)
+            if len(full_status["timeout"]) == 5: 
+                log = f"[ERROR] Batch {i}: Attempt {max_retries} times, but time out. Increasing time out retry..."
+                timeout_seconds += 10
+                max_retries += 1
+            elif len(full_status["overload"]) == 5: 
+                log = f"[ERROR] Batch {i}: Attempt {max_retries} times, but the model is overload. Increasing waiting time..."
+                increase_waiting += 5
+                increase_range += 1
+                max_retries += 1
+            else:
+                log = f"[ERROR] Batch {i}: Attemp {max_retries} times, but the time {full_status['timeout']} time out, {full_status['overload']} overload. Increasing timeout and waiting time..."
+                timeout_seconds += 5
+                increase_waiting += 3
+                increase_range += 1
+                max_retries += 1
+            print(log)
             
-            # Data after processed
-            final_result = final_data(response, final_result, data)
-            # print("\nWritting...")
-            with open(result_dir, "w", encoding="utf-8") as f:
-                json.dump(final_result, f)
-            # print("\nFinish writting.")
-            time.sleep(20)
-        except:
-            print()
-            print("[ERROR] Error in batch {}".format(i))
-            time.sleep(60)
-        print(f"Processing {total_comment}/{len(list(data))} comments ....  - {wrong_format} comments are wrong format      ")            
-        # break
+        else:
+            success_sequence = max(success_sequence -1, 0)
+            print(f"[ERROR] Batch {i}: Strange error. Skip this batch")
 
-
+        # Base on length of success sequence to find the optimal configuration parameter
+        if success_sequence == 3:
+            safe_timeout_seconds = timeout_seconds
+            safe_max_retries = max_retries
+            safe_increase_waiting = increase_waiting
+            safe_increase_range = increase_range
+            
+        if success_sequence >= 5:
+            max_retries = min(safe_max_retries, max_retries)
+            timeout_seconds = min(safe_timeout_seconds, timeout_seconds)
+            increase_waiting = min(safe_increase_waiting, increase_waiting)
+            increase_range = min(safe_increase_range, increase_range)
+            
+                    
     print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
-
-
-
-
-
