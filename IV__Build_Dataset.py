@@ -378,7 +378,7 @@ if __name__  =="__main__":
 
     # Config parameter
     timeout_seconds = 90
-    max_retries = 5
+    max_retries = 2
     increase_waiting = 20
     increase_range = 20
     success_sequence = 0
@@ -501,6 +501,7 @@ if __name__  =="__main__":
             
                     
     print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
+
 
 
 
