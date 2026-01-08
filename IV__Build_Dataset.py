@@ -128,7 +128,7 @@ def ask(system_prompt, batch_comments, client):
                 return None
             
         except Exception as e:
-            print("[ERORR] Somethings wrong when call api :(( : {}".format(e))
+            # print("[ERROR] Somethings wrong when call api :(( : {}".format(e))
             continue
             
             # print()
@@ -386,3 +386,4 @@ if __name__  =="__main__":
 
 
     print("[DONE] Finish processing comments.")
+
