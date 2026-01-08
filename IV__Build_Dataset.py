@@ -286,7 +286,7 @@ if __name__  =="__main__":
     print("\t\tINIT CHAT")
     api_key_index = 0
     api_folder = args.api_folder
-    api_key_dir = os.path.join(api_folder, f"api_key_{INDEX_DATA}.json")
+    api_key_dir = os.path.join(api_folder, f"api_key_{INDEX_DATA%10}.json")
     client = init_chat(api_key_index, api_key_dir)
     with open(api_key_dir, "r") as f:
         api_dict = json.load(f)
@@ -385,5 +385,6 @@ if __name__  =="__main__":
         # break
 
 
-    print("[DONE] Finish processing comments.")
+    print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
+
 
