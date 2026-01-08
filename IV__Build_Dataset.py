@@ -92,7 +92,9 @@ def init_chat(api_key_index = 0, api_dir = "./config/api_key_0.json"):
 def ask(system_prompt, batch_comments, client):
 # def ask(messages, client):
     max_retries = 5
-    base_delay = 10
+    timeout_seconds = 90
+    base_waiting = 10
+    base_range = 10
     
     #######################################################
     # GOOGLE API
@@ -117,7 +119,8 @@ def ask(system_prompt, batch_comments, client):
                 response = client.models.generate_content(
                     model = model,
                     contents = user_comments,
-                    config = config
+                    config = config,
+                    timeout = timeout_seconds 
                 )
                 # print("Finish Asking")
                 if response.text:
@@ -138,7 +141,38 @@ def ask(system_prompt, batch_comments, client):
                     check_end_quota += 1
                     break
 
-                # if not end of quota, but cannot get answer successfully -> retry
+                # if not end of quota, but cannot get answer successfully because server is overload or timeout
+                # --> wait and retry
+                if "503" in str(e)\
+                    or "408" in str(e)\
+                    or "timeout" in str(e).lower()\
+                    or "UNAVAILABLE" in str(e)\
+                    or "500" in error_msg:
+                    # ------Wait--------
+                    # _ Strategy of waiting to avoid collision next time:
+                    #  + The more time of collision -> The longer wating time
+                    #    In case: query1 collides with query2, but query1 has collided the first time, while query2 is the 3rd
+                    #    This strategy ensures that query1 and query2 will wait for different time and be sent at different moment at the next time
+                    #    --> Set up waiting time to increase linearly after one collision time: waiting_time = const * num_collision
+                    #
+                    #  + Waiting randomly, the more times of collision, the wider random range of waiting:
+                    #    In case: query1 collides with query2, both query1 and query2 have collided the first time
+                    #    If waiting longer according to above formula, query1 and query2 will be resent at the same moment in the next time of retrying
+                    #    -> Add a random waiting time: both query1 and query2 have to wait additionally for a random time in range of (1,10)
+                    #    However, if there are more than 10 queries collide at the same time, there are some queries waiting for a same time
+                    #    So that, the next time, these queries will collide again
+                    #    --> Idea: suppose that: the more collision times, the more queries collide. So, they have to be wait randomly in wider range
+                    #        First time of collision: wait randomly for time in range of (1,10)
+                    #        second time of collision: wait randomly for time in range of (1,20)
+                    #        third time of collision: wait randomly for time in range of (1,30)
+                    #    --> Set up the range wider linear after one collision time : range = (1, const * num_collision) 
+                    # --------> FINAL FORMULA FOR WATING TIME: waiting_time = const1*num_collision + random(1, const*num_collision)
+                
+                    wait_time = base_waiting * attempt + random.randint(1, base_range * attempt)
+                    time.sleep(wait_time)
+                    # ------Retry-------
+                    continue
+                    
                 else:
                     print("\t[ERROR] Somethings wrong when call api : {}".format(e)) 
                     print("\t_ Attempt one more time ...")
@@ -398,6 +432,7 @@ if __name__  =="__main__":
 
 
     print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
+
 
 
 
