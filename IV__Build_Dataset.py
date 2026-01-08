@@ -22,6 +22,7 @@ parser.add_argument("--api_folder", type=str, default="./config")
 parser.add_argument("--data_folder", type=str, default="./tmp")
 parser.add_argument("--history_dir", type=str, default="/kaggle/input/process_comment_yt_INDEX/final_data_INDEX.json")
 parser.add_argument("--result_folder", type=str, default="./tmp")
+parser.add_argument("--batch_size", type=int, default=30)
 args = parser.parse_args()
     
 # Load flatten collection
@@ -372,7 +373,7 @@ if __name__  =="__main__":
     comments_id = list(data.keys())
     comments_id = [id for id in comments_id if id not in final_result]
     random.shuffle(comments_id)
-    batch_size = 50
+    batch_size = args.batch_size
     num_batch = len(comments_id)//batch_size
 
     # Config parameter
@@ -500,3 +501,4 @@ if __name__  =="__main__":
             
                     
     print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
+
