@@ -93,8 +93,8 @@ def ask(system_prompt, batch_comments, client):
 # def ask(messages, client):
     max_retries = 5
     timeout_seconds = 90
-    base_waiting = 10
-    base_range = 10
+    increase_waiting = 10
+    increase_range = 10
     
     #######################################################
     # GOOGLE API
@@ -167,8 +167,10 @@ def ask(system_prompt, batch_comments, client):
                     #        third time of collision: wait randomly for time in range of (1,30)
                     #    --> Set up the range wider linear after one collision time : range = (1, const * num_collision) 
                     # --------> FINAL FORMULA FOR WATING TIME: waiting_time = const1*num_collision + random(1, const*num_collision)
-                
-                    wait_time = base_waiting * attempt + random.randint(1, base_range * attempt)
+                    base_waiting = increase_waiting * attempt
+                    new_range = increase_range * attempt + 10 # range: at lease 10s
+                    random_waiting = random.randint(1, new_range)
+                    wait_time = base_waiting + random_waiting
                     time.sleep(wait_time)
                     # ------Retry-------
                     continue
@@ -432,6 +434,7 @@ if __name__  =="__main__":
 
 
     print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
+
 
 
 
