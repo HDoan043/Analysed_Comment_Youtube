@@ -14,15 +14,15 @@ from google.genai import types
 import time
 import os
 import random
-
+import re
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--index_data", type=int, default=0)
-parser.add_argument("--api_folder", type=str, default="./config")
-parser.add_argument("--data_folder", type=str, default="./tmp")
-parser.add_argument("--history_dir", type=str, default="/kaggle/input/process_comment_yt_INDEX/final_data_INDEX.json")
-parser.add_argument("--result_folder", type=str, default="./tmp")
-parser.add_argument("--batch_size", type=int, default=30)
+parser.add_argument("--api_folder", type=str, default="./vn_fitness_youtube_comments/api_key_partitions")
+parser.add_argument("--data_folder", type=str, default="./vn_fitness_youtube_comments/data_partitions")
+parser.add_argument("--history_dir", type=str, default="/tmp/distributed_result/final_data_INDEX.json")
+parser.add_argument("--result_folder", type=str, default="./tmp/distributed_result")
+parser.add_argument("--batch_size", type=int, default=50)
 args = parser.parse_args()
     
 # Load flatten collection
@@ -124,7 +124,7 @@ def ask(
                 # print("Finish Asking")
                 if response.text:
                     try:
-                        clear_json_response = clear_json_text(response.text)
+                        clear_json_response = clean_json_text(response.text)
                         json_response = json.loads(clear_json_response)
                         return json_response
                     # in case of the answer not in json format -> retry again
@@ -518,11 +518,3 @@ if __name__  =="__main__":
             
                     
     print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
-
-
-
-
-
-
-
-
