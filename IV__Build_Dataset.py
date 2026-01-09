@@ -61,13 +61,13 @@ def extract_non_structured(batch_comments):
     return batch
     
 # Full prompt
-def full_prompt(prompt, batch_comments):
-    user_comments = json.dumps(batch_comments, ensure_ascii=False, indent=2)
-    messages = [
-        {"role": "system", "content": prompt},
-        {"role": "user", "content": user_comments}
-    ]
-    return messages
+# def full_prompt(prompt, batch_comments):
+#     user_comments = json.dumps(batch_comments, ensure_ascii=False, indent=2)
+#     messages = [
+#         {"role": "system", "content": prompt},
+#         {"role": "user", "content": user_comments}
+#     ]
+#     return messages
 
 def init_chat(api_key_index = 0, api_dir = "./config/api_key_0.json"):
     with open(api_dir, "r") as f:
@@ -124,7 +124,8 @@ def ask(
                 # print("Finish Asking")
                 if response.text:
                     try:
-                        json_response = json.loads(response.text)
+                        clear_json_response = clear_json_text(response.text)
+                        json_response = json.loads(clear_json_response)
                         return json_response
                     # in case of the answer not in json format -> retry again
                     except:
@@ -191,8 +192,8 @@ def ask(
                 #     print(f"❌ Lỗi: mô hình {model[attempt]} hết hạn mức. ", end="")
                 #     if attempt < len(model) - 1: print(f"Đang chuyển sang mô hình {model[attempt+1]}")  
                 #     else: print()
-    if check_end_quota == len(models): return -1
-    if len(error_log) == max_retries * len(models): 
+    if check_end_quota >= len(models): return -1
+    if len(error_log) >= max_retries * len(models): 
         return error_log
     else: 
         return 0
@@ -231,6 +232,18 @@ def ask(
     # print("❌ Đã thử quá nhiều lần, bỏ qua batch này.")
     # return None
     ##################################################
+
+def clean_json_text(text):
+    """
+    Hàm làm sạch chuỗi JSON trả về từ Gemini.
+    Loại bỏ các ký tự Markdown ```json và ``` 
+    """
+    if not text: return ""
+    # Xóa ```json ở đầu và ``` ở cuối nếu có
+    cleaned = re.sub(r"^```json\s*", "", text, flags=re.MULTILINE)
+    cleaned = re.sub(r"^```\s*", "", cleaned, flags=re.MULTILINE)
+    cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.MULTILINE)
+    return cleaned.strip()
     
 def check_format(response):
     '''
@@ -410,7 +423,7 @@ if __name__  =="__main__":
         non_structured_data = extract_non_structured(batch)
         
         # Messages
-        messages = full_prompt(prompt, non_structured_data)
+        # messages = full_prompt(prompt, non_structured_data)
         
         # Get response
         
@@ -418,7 +431,7 @@ if __name__  =="__main__":
         # GOOGLE API
         check_end_quota = False
         while 1:
-            response = ask(prompt, batch, client, 
+            response = ask(prompt, non_structured_data, client, 
                            timeout_seconds = timeout_seconds, 
                            max_retries = max_retries, 
                            increase_waiting = increase_waiting, 
@@ -505,6 +518,7 @@ if __name__  =="__main__":
             
                     
     print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
+
 
 
 
