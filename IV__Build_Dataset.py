@@ -293,7 +293,7 @@ def check_format(response):
                 ("abs" in target_body_parts) and \
                 ("cardio" in target_body_parts)):
                     # print("thiếu target_body_parts")
-                    wrong_format += 1
+                    wrong_response += 1
                     continue
     
             right_response[id] = value
@@ -305,23 +305,27 @@ def check_format(response):
                 
 # Data after processing
 def final_data(analysed, final, data):
+    wrong_id_from_model = 0
     for comment_id, analysed_result in analysed.items():
-        original_data = data[comment_id]
-        final[comment_id] = {}
-        final[comment_id]["channel_views"] = original_data["channel_views"]
-        final[comment_id]["channel_subscibers"] = original_data["channel_subscribers"]
-        final[comment_id]["channel_videos"] = original_data["channel_videos"]
-        final[comment_id]["video_views"] = original_data["video_views"]
-        final[comment_id]["video_likes"] = original_data["video_likes"]
-        final[comment_id]["video_favorites"] = original_data["video_favorites"]
-        final[comment_id]["comment_likes"] = original_data["comment_likes"]
-        final[comment_id]["comment_replies_count"] = original_data["comment_replies_count"]
-        final[comment_id]["discussion_topics"] = analysed_result["discussion_topics"]
-        final[comment_id]["interest_type"] = analysed_result["interest_type"]
-        final[comment_id]["mentions_constraints"] = analysed_result["mentions_constraints"]
-        final[comment_id]["target_body_parts"] = analysed_result["target_body_parts"]
-        final[comment_id]["intent_signal"] = analysed_result["intent_signal"]
-    return final
+        if comment_id in data:
+            original_data = data[comment_id]
+            final[comment_id] = {}
+            final[comment_id]["channel_views"] = original_data["channel_views"]
+            final[comment_id]["channel_subscibers"] = original_data["channel_subscribers"]
+            final[comment_id]["channel_videos"] = original_data["channel_videos"]
+            final[comment_id]["video_views"] = original_data["video_views"]
+            final[comment_id]["video_likes"] = original_data["video_likes"]
+            final[comment_id]["video_favorites"] = original_data["video_favorites"]
+            final[comment_id]["comment_likes"] = original_data["comment_likes"]
+            final[comment_id]["comment_replies_count"] = original_data["comment_replies_count"]
+            final[comment_id]["discussion_topics"] = analysed_result["discussion_topics"]
+            final[comment_id]["interest_type"] = analysed_result["interest_type"]
+            final[comment_id]["mentions_constraints"] = analysed_result["mentions_constraints"]
+            final[comment_id]["target_body_parts"] = analysed_result["target_body_parts"]
+            final[comment_id]["intent_signal"] = analysed_result["intent_signal"]
+        else:
+            wrong_id_from_model += 1
+    return final, wrong_id_from_model
 
 if __name__  =="__main__":
     
@@ -445,11 +449,11 @@ if __name__  =="__main__":
             # Check quality
             response, wrong_format = check_format(response)            
             # Data after processed
-            final_result = final_data(response, final_result, data)
+            final_result, wrong_id_from_model = final_data(response, final_result, data)
             with open(result_dir, "w", encoding="utf-8") as f:
                 json.dump(final_result, f)
             time.sleep(20)
-            print(f"Process {total_comment}/{len(list(data))} comments ....  - {wrong_format} comments are wrong format      ")     
+            print(f"Process {total_comment}/{len(list(data))} comments ....  - {wrong_format} comments are wrong format, {wrong_id_from_model} comments are wrong id      ")     
             # Update safe parameter
             success_sequence += 1
                 
@@ -501,6 +505,7 @@ if __name__  =="__main__":
             
                     
     print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
+
 
 
 
