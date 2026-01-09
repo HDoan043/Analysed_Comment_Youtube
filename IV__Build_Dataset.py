@@ -119,7 +119,7 @@ def ask(
                     model = model,
                     contents = user_comments,
                     config = config,
-                    timeout = timeout_seconds 
+                    # timeout = timeout_seconds 
                 )
                 # print("Finish Asking")
                 if response.text:
@@ -501,6 +501,7 @@ if __name__  =="__main__":
             
                     
     print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
+
 
 
 
