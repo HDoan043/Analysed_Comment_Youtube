@@ -441,22 +441,22 @@ if __name__  =="__main__":
 
         # Process response
         if isinstance(response, dict):
-            try:
-                # Check quality
-                response, wrong_format = check_format(response)            
-                # Data after processed
-                final_result = final_data(response, final_result, data)
-                with open(result_dir, "w", encoding="utf-8") as f:
-                    json.dump(final_result, f)
-                time.sleep(20)
-                print(f"Process {total_comment}/{len(list(data))} comments ....  - {wrong_format} comments are wrong format      ")     
-                # Update safe parameter
-                success_sequence += 1
+            
+            # Check quality
+            response, wrong_format = check_format(response)            
+            # Data after processed
+            final_result = final_data(response, final_result, data)
+            with open(result_dir, "w", encoding="utf-8") as f:
+                json.dump(final_result, f)
+            time.sleep(20)
+            print(f"Process {total_comment}/{len(list(data))} comments ....  - {wrong_format} comments are wrong format      ")     
+            # Update safe parameter
+            success_sequence += 1
                 
-            except:
-                print()
-                print("[ERROR] Batch {}: the returned response is not in JSON format".format(i))
-                print("Skip this batch")
+            # except:
+            #     print()
+            #     print("[ERROR] Batch {}: the returned response is not in JSON format".format(i))
+            #     print("Skip this batch")
     
         elif isinstance(response, list):
             success_sequence = max(success_sequence -1, 0)
@@ -501,6 +501,7 @@ if __name__  =="__main__":
             
                     
     print(f"[DONE] Finish processing {total_comment}/{len(list(data))} comments.")
+
 
 
 
